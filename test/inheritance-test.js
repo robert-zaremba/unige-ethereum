@@ -1,4 +1,4 @@
-const { expect } = require("chai");
+const { expect, assert } = require("chai");
 const { ethers } = require("hardhat");
 
 /*
@@ -27,7 +27,8 @@ describe("Inheritance", function() {
     console.log(receipt.events[0].args);
 
     expect(receipt.events.length).equal(2);
-
+    // or using assert
+    assert.equal(receipt.events.length, 2);
 
     out = await d.bar();
     receipt = await out.wait();
