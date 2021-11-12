@@ -7,17 +7,20 @@ import "hardhat/console.sol";
 contract Car {
     string public name;
 
-    constructor(string name_) public {
+    constructor(string memory name_) {
         name = name_;
     }
 }
 
 contract Factory {
+    Car[] public cars;
 
     function createCar(string memory name_) public {
         Car car = new Car(name_);
         cars.push(car);
     }
 
-    // TODO: make it running and
+    function num_of_cars() public view returns(uint16) {
+        return uint16(cars.length);
+    }
 }
