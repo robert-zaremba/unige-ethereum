@@ -5,8 +5,8 @@ import "hardhat/console.sol";
 
 
 contract A {
-    event FooA(string m);
-    event BarA(string m);
+    event FooA(string);
+    event BarA(string);
 
     function foo() public virtual {
         emit FooA("A.foo called");
