@@ -1,6 +1,19 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+/*
+   To start:
+     yarn install
+   or: npm install
+
+   To compile:
+     yarn hardhat compile
+     npx hardhat compile
+   To run test:
+     yarn hardhat test test/inheritance-test.js
+*/
+
+
 describe("Inheritance", function() {
   it("Should deploy D", async function() {
     const D = await ethers.getContractFactory("D");
