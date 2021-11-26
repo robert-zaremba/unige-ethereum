@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 
 const BigNumber = ethers.BigNumber;
 const oneE18 = BigInt("1" + "0".repeat(18));
+const zeroAddr = "0x0000000000000000000000000000000000000000";
 
 function BN(x) { return BigNumber.from(x); }
 
@@ -58,15 +59,47 @@ describe("OrderBook", function() {
   });
 
   it("everyone can make an order", async function() {
+    /*** test creating buy flow ***/
     // from, to, max unit price, volume
-    await ob.connect(u1).sell(t1.address, t2.address, 2, 5);
-    await ob.connect(u2).buy(t1.address, t3.address, 1, 2);
+    let r = await ob.connect(u1).sell(t1.address, t2.address, 2, 5);
+    let sellID = 1;
+    await expect(r).to.emit(ob, 'Sell')
+      .withArgs(sellID, t1.address, t2.address, 2, 5);
+    assert.equal(await ob.order_counter(), sellID);
+    assert.equal(await ob.sells(t1.address, t2.address, 0),
+      sellID, "sell order is in sell map");
+    assert.deepEqual(await ob.orders(sellID),
+      [u1.address, t1.address, t2.address, BN(2), BN(5)]);
 
-    let o = await ob.sells(t1.address, t2.address, 0);
-    assert.deepEqual(o, [u1.address, t1.address, t2.address, BN(2), BN(5)]);
+    /*** test creating sell flow ***/
 
-    o = await ob.buys(t1.address, t3.address, 0);
-    assert.deepEqual(o, [u2.address, t1.address, t3.address, BN(1), BN(2)]);
+    r = await ob.connect(u2).buy(t1.address, t3.address, 1, 2);
+    let buyID = 2;
+    assert.equal(await ob.order_counter(), buyID, "after buy order counter updated");
+    await expect(r).to.emit(ob, 'Buy')
+      .withArgs(buyID, t1.address, t3.address, 1, 2);
+    assert.equal(await ob.buys(t1.address, t3.address, 0),
+                 buyID, "buy order is in buy map");
+    assert.deepEqual(await ob.orders(buyID),
+      [u2.address, t1.address, t3.address, BN(1), BN(2)]);
+
+
+    /*** test cancel orders ***/
+
+    r = await ob.connect(u1).cancel_order(sellID);
+    await expect(r).to.emit(ob, 'CancelOrder')
+      .withArgs(sellID);
+    assert.equal(await ob.order_counter(), buyID, "order counter shouldn't change");
+    assert.deepEqual(await ob.orders(sellID),
+                     [zeroAddr, zeroAddr, zeroAddr, BN(0), BN(0)]);
+
+    // reverting when cancelling again the same order
+    await expect(ob.connect(u1).cancel_order(sellID))
+      .revertedWith("Order doesn't exists");
+
+    // reverting someones else order is not possible
+    await expect(ob.connect(u1).cancel_order(buyID))
+      .revertedWith("Order owned by someone else");
   });
 
   /*

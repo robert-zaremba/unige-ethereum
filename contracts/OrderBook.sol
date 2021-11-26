@@ -48,11 +48,15 @@ contract OrderBook is Ownable {
 
     IERC20[] public tokens;
 
+    uint256 public order_counter;
+    mapping(uint256 => Order) public orders;
     // map "from" token to "to" token to list of orders
-    mapping(IERC20 => mapping(IERC20 => Order[])) public sells;
-    mapping(IERC20 => mapping(IERC20 => Order[])) public buys;
+    mapping(IERC20 => mapping(IERC20 => uint256[])) public sells;
+    mapping(IERC20 => mapping(IERC20 => uint256[])) public buys;
 
-    //event Order(uint gas);
+    event Buy(uint256 id, IERC20 from, IERC20 to, uint256 price, uint256 volume);
+    event Sell(uint256 id, IERC20 from, IERC20 to, uint256 price, uint256 volume);
+    event CancelOrder(uint256 id);
 
     constructor (address owner, IERC20[] memory tokens_) {
         _transferOwnership(owner);
@@ -80,13 +84,33 @@ contract OrderBook is Ownable {
 
     // @dev returns true if it settled
     function sell(IERC20 from, IERC20 to, uint256 unit_price, uint256 volume) public returns(bool){
-        sells[from][to].push(Order(msg.sender, from, to, unit_price, volume));
+        ++order_counter;
+        Order memory o = Order(msg.sender, from, to, unit_price, volume);
+        orders[order_counter] = o;
+        sells[from][to].push(order_counter);
+
+        emit Sell(order_counter, from, to, unit_price, volume);
+
         return false;
     }
 
     // @dev returns true if it settled
     function buy(IERC20 from, IERC20 to, uint256 unit_price, uint256 volume) public returns(bool){
-        buys[from][to].push(Order(msg.sender, from, to, unit_price, volume));
+        ++order_counter;
+        Order memory o = Order(msg.sender, from, to, unit_price, volume);
+        orders[order_counter] = o;
+        buys[from][to].push(order_counter);
+
+        emit Buy(order_counter, from, to, unit_price, volume);
+
         return false;
+    }
+
+    function cancel_order(uint256 id) public {
+        Order storage o = orders[id];
+        require(o.trader != address(0), "Order doesn't exists");
+        require(o.trader == msg.sender, "Order owned by someone else");
+        delete orders[id];
+        emit CancelOrder(id);
     }
 }
